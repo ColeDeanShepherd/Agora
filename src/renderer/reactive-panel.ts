@@ -1,14 +1,35 @@
 import type { ReactivePanelConfig } from '../shared/panel-config';
 
+// ── Webview render signal ────────────────────────────────────────────
+
+/** Returned by a render function to request a <webview> instead of inline HTML. */
+interface WebviewRenderSignal {
+  webviewUrl: string;
+}
+
+/** Type guard for render functions that return a webview signal. */
+function isWebviewSignal(value: unknown): value is WebviewRenderSignal {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'webviewUrl' in value &&
+    typeof (value as WebviewRenderSignal).webviewUrl === 'string'
+  );
+}
+
 // ── Per-panel runtime state ──────────────────────────────────────────
 
 interface ReactiveState {
   config: ReactivePanelConfig;
   contentEl: HTMLElement;
   evaluate: (inputs: Record<string, unknown>) => unknown;
-  render: (value: unknown) => string;
+  render: (value: unknown) => unknown;
   timerId?: ReturnType<typeof setInterval>;
   currentValue?: unknown;
+  /** Reference to a dynamically created <webview> element (webview signal mode). */
+  webviewEl?: HTMLElement;
+  /** Last URL loaded into the webview; used to suppress redundant navigations. */
+  lastWebviewUrl?: string;
 }
 
 /** Active states keyed by panel ID; cleared when panels are re-rendered. */
@@ -26,6 +47,44 @@ export function clearReactivePanels(): void {
   }
   activeStates.clear();
   dependents.clear();
+}
+
+// ── Webview helpers ──────────────────────────────────────────────────
+
+/**
+ * Creates or updates the <webview> inside a reactive panel's content element.
+ * Skips navigation when the URL hasn't changed.
+ */
+function updateWebview(state: ReactiveState, url: string): void {
+  if (state.lastWebviewUrl === url) return;
+  state.lastWebviewUrl = url;
+
+  if (!state.webviewEl) {
+    // First render: create the <webview> element
+    state.contentEl.innerHTML = '';
+
+    const webview = document.createElement('webview');
+    webview.className = 'webview-panel';
+    webview.setAttribute('src', url);
+    webview.setAttribute('allowpopups', '');
+    webview.setAttribute('partition', `persist:${state.config.id}`);
+
+    // Style the internal iframe once the shadow DOM is available
+    webview.addEventListener('dom-ready', () => {
+      const shadow = webview.shadowRoot;
+      if (shadow) {
+        const style = document.createElement('style');
+        style.textContent = 'iframe { height: 100% !important; }';
+        shadow.appendChild(style);
+      }
+    });
+
+    state.contentEl.appendChild(webview);
+    state.webviewEl = webview;
+  } else {
+    // URL changed: navigate the existing webview
+    state.webviewEl.setAttribute('src', url);
+  }
 }
 
 // ── Evaluation helpers ───────────────────────────────────────────────
@@ -50,7 +109,14 @@ function tickPanel(panelId: string): void {
     const inputs = getInputValues(state.config);
     const value = state.evaluate(inputs);
     state.currentValue = value;
-    state.contentEl.innerHTML = state.render(value);
+
+    const rendered = state.render(value);
+
+    if (isWebviewSignal(rendered)) {
+      updateWebview(state, rendered.webviewUrl);
+    } else {
+      state.contentEl.innerHTML = rendered as string;
+    }
   } catch (err) {
     state.contentEl.textContent = `Error: ${(err as Error).message}`;
   }

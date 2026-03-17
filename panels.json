@@ -51,5 +51,24 @@
         "height": 120
       }
     }
+  },
+  {
+    "id": "google-time",
+    "type": "reactive",
+    "title": "Google Time",
+    "expression": "new Date(Math.floor(inputs.clock.getTime() / 10000) * 10000)",
+    "schedule": { "type": "inputChange" },
+    "inputs": { "clock": "clock" },
+    "render": "(value) => ({ webviewUrl: `https://www.google.com/search?igu=1&q=${encodeURIComponent(value.toLocaleTimeString())}` })",
+    "rect": {
+      "position": {
+        "x": 660,
+        "y": 140
+      },
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    }
   }
 ]

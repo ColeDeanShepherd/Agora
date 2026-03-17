@@ -37,7 +37,11 @@ export interface ReactivePanelConfig extends BasePanelConfig {
   schedule: ExecutionSchedule;
   /** Maps local input names (available in the expression as `inputs.<name>`) to source panel IDs. */
   inputs?: Record<string, string>;
-  /** JavaScript function body `(value) => html` that returns an HTML string. */
+  /**
+   * JavaScript function `(value) => html | { webviewUrl: string }`.
+   * Returns an HTML string for inline content, or a webview signal
+   * object to render a <webview> at the given URL (only refreshed when the URL changes).
+   */
   render: string;
 }
 
