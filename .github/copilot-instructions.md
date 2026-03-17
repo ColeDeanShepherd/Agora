@@ -12,7 +12,7 @@
 
 ## Frontend
 
-- No inline styles in HTML; use external stylesheets.
+- Prefer external stylesheets over inline styles in HTML.
 - Support light/dark mode with CSS variables and `prefers-color-scheme`.
 
 ## TypeScript

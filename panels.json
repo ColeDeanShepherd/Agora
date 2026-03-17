@@ -1,6 +1,7 @@
 [
   {
     "id": "vti-snapshot",
+    "type": "webview",
     "title": "VTI Snapshot",
     "url": "https://www.google.com/finance/quote/VTI:NYSEARCA",
     "rect": {
@@ -11,6 +12,24 @@
       "size": {
         "width": 640,
         "height": 480
+      }
+    }
+  },
+  {
+    "id": "clock",
+    "type": "reactive",
+    "title": "Clock",
+    "expression": "new Date()",
+    "intervalMs": 1000,
+    "render": "(value) => `<span class=\"clock-display\">${value.toLocaleTimeString()}</span>`",
+    "rect": {
+      "position": {
+        "x": 660,
+        "y": 0
+      },
+      "size": {
+        "width": 280,
+        "height": 120
       }
     }
   }

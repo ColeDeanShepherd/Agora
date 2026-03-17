@@ -85,3 +85,17 @@ main {
   overflow: hidden;
   flex-grow: 1;
 }
+
+/* Reactive panel content fills the remaining space */
+.reactive-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  overflow: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-display {
+  font-size: 2rem;
+}

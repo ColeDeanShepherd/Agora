@@ -1,12 +1,14 @@
-import type { PanelConfig } from '../shared/panel-config';
+import type { PanelConfig, WebviewPanelConfig, ReactivePanelConfig } from '../shared/panel-config';
 import { applyWebviewIframeStyles } from './renderer.js';
+import { clearReactivePanels, startReactivePanel } from './reactive-panel.js';
 
 // Derive partition from panel ID to isolate storage per panel
 function getPanelPartition(panelId: string): string {
   return `persist:${panelId}`;
 }
 
-function createPanelElement(config: PanelConfig): HTMLElement {
+/** Creates the outer section wrapper shared by all panel types. */
+function createPanelShell(config: PanelConfig): HTMLElement {
   const section = document.createElement('section');
   section.className = 'panel';
   section.setAttribute('aria-label', config.title);
@@ -17,6 +19,13 @@ function createPanelElement(config: PanelConfig): HTMLElement {
 
   const title = document.createElement('h1');
   title.textContent = config.title;
+  section.appendChild(title);
+
+  return section;
+}
+
+function createWebviewPanel(config: WebviewPanelConfig): HTMLElement {
+  const section = createPanelShell(config);
 
   const webview = document.createElement('webview');
   webview.className = 'webview-panel';
@@ -25,15 +34,41 @@ function createPanelElement(config: PanelConfig): HTMLElement {
   // Use derived partition if not explicitly set
   webview.setAttribute('partition', config.partition ?? getPanelPartition(config.id));
 
-  section.appendChild(title);
   section.appendChild(webview);
   return section;
+}
+
+function createReactivePanel(config: ReactivePanelConfig): HTMLElement {
+  const section = createPanelShell(config);
+
+  const content = document.createElement('div');
+  content.className = 'reactive-content';
+  section.appendChild(content);
+
+  // Schedule expression evaluation after the element is in the DOM
+  queueMicrotask(() => startReactivePanel(config, content));
+
+  return section;
+}
+
+/** Builds the correct DOM element based on the panel's type. */
+function createPanelElement(config: PanelConfig): HTMLElement {
+  switch (config.type) {
+    case 'reactive':
+      return createReactivePanel(config);
+    case 'webview':
+    default:
+      return createWebviewPanel(config as WebviewPanelConfig);
+  }
 }
 
 /** Replaces all panels in the DOM with elements built from the given configs. */
 export function renderPanels(panels: PanelConfig[]): void {
   const container = document.getElementById('panels-container');
   if (!container) return;
+
+  // Tear down running reactive panels before clearing the DOM
+  clearReactivePanels();
 
   // Clear existing panels
   container.innerHTML = '';
