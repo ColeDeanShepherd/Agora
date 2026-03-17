@@ -1,19 +1,5 @@
 import type { Rectangle } from './rectangle';
 
-/** Fields common to every panel type. */
-interface BasePanelConfig {
-  id: string;
-  title: string;
-  rect: Rectangle;
-}
-
-/** A panel that embeds a remote URL in a <webview>. */
-export interface WebviewPanelConfig extends BasePanelConfig {
-  type: 'webview';
-  url: string;
-  partition?: string;
-}
-
 /** Execution schedule: re-evaluate on a fixed interval. */
 export interface IntervalSchedule {
   type: 'interval';
@@ -28,13 +14,24 @@ export interface InputChangeSchedule {
 /** Discriminated union of supported execution schedules. */
 export type ExecutionSchedule = IntervalSchedule | InputChangeSchedule;
 
-/** A panel driven by a JS expression evaluated on a schedule. */
-export interface ReactivePanelConfig extends BasePanelConfig {
-  type: 'reactive';
+/**
+ * Configuration for a single panel in panels.json.
+ *
+ * Every panel is reactive: a JS expression is evaluated and the result is
+ * passed to a render function.  Panels that need no recurring updates
+ * (e.g. a static webview URL) simply omit `schedule` for a one-shot evaluation.
+ */
+export interface PanelConfig {
+  id: string;
+  title: string;
+  rect: Rectangle;
   /** JavaScript expression evaluated to produce a value each tick. */
   expression: string;
-  /** When and how often the expression is re-evaluated. */
-  schedule: ExecutionSchedule;
+  /**
+   * When and how often the expression is re-evaluated.
+   * Omit for a one-shot evaluation (e.g. a static webview URL).
+   */
+  schedule?: ExecutionSchedule;
   /** Maps local input names (available in the expression as `inputs.<name>`) to source panel IDs. */
   inputs?: Record<string, string>;
   /**
@@ -44,6 +41,3 @@ export interface ReactivePanelConfig extends BasePanelConfig {
    */
   render: string;
 }
-
-/** Discriminated union of all panel types in panels.json. */
-export type PanelConfig = WebviewPanelConfig | ReactivePanelConfig;

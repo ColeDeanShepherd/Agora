@@ -1,13 +1,7 @@
-import type { PanelConfig, WebviewPanelConfig, ReactivePanelConfig } from '../shared/panel-config';
-import { applyWebviewIframeStyles } from './renderer.js';
+import type { PanelConfig } from '../shared/panel-config';
 import { clearReactivePanels, startReactivePanel } from './reactive-panel.js';
 
-// Derive partition from panel ID to isolate storage per panel
-function getPanelPartition(panelId: string): string {
-  return `persist:${panelId}`;
-}
-
-/** Creates the outer section wrapper shared by all panel types. */
+/** Creates the outer section wrapper for a panel. */
 function createPanelShell(config: PanelConfig): HTMLElement {
   const section = document.createElement('section');
   section.className = 'panel';
@@ -24,21 +18,8 @@ function createPanelShell(config: PanelConfig): HTMLElement {
   return section;
 }
 
-function createWebviewPanel(config: WebviewPanelConfig): HTMLElement {
-  const section = createPanelShell(config);
-
-  const webview = document.createElement('webview');
-  webview.className = 'webview-panel';
-  webview.setAttribute('src', config.url);
-  webview.setAttribute('allowpopups', '');
-  // Use derived partition if not explicitly set
-  webview.setAttribute('partition', config.partition ?? getPanelPartition(config.id));
-
-  section.appendChild(webview);
-  return section;
-}
-
-function createReactivePanel(config: ReactivePanelConfig): HTMLElement {
+/** Builds the DOM element for a panel and schedules its reactive evaluation. */
+function createPanelElement(config: PanelConfig): HTMLElement {
   const section = createPanelShell(config);
 
   const content = document.createElement('div');
@@ -49,17 +30,6 @@ function createReactivePanel(config: ReactivePanelConfig): HTMLElement {
   queueMicrotask(() => startReactivePanel(config, content));
 
   return section;
-}
-
-/** Builds the correct DOM element based on the panel's type. */
-function createPanelElement(config: PanelConfig): HTMLElement {
-  switch (config.type) {
-    case 'reactive':
-      return createReactivePanel(config);
-    case 'webview':
-    default:
-      return createWebviewPanel(config as WebviewPanelConfig);
-  }
 }
 
 /** Replaces all panels in the DOM with elements built from the given configs. */
@@ -78,9 +48,6 @@ export function renderPanels(panels: PanelConfig[]): void {
     const panelElement = createPanelElement(panelConfig);
     container.appendChild(panelElement);
   });
-
-  // Apply webview iframe styles to new panels
-  applyWebviewIframeStyles();
 }
 
 /** Loads panels from main process config and subscribes to live config changes. */

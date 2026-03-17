@@ -1,4 +1,4 @@
-import type { ReactivePanelConfig } from '../shared/panel-config';
+import type { PanelConfig } from '../shared/panel-config';
 
 // ── Webview render signal ────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ function isWebviewSignal(value: unknown): value is WebviewRenderSignal {
 // ── Per-panel runtime state ──────────────────────────────────────────
 
 interface ReactiveState {
-  config: ReactivePanelConfig;
+  config: PanelConfig;
   contentEl: HTMLElement;
   evaluate: (inputs: Record<string, unknown>) => unknown;
   render: (value: unknown) => unknown;
@@ -90,7 +90,7 @@ function updateWebview(state: ReactiveState, url: string): void {
 // ── Evaluation helpers ───────────────────────────────────────────────
 
 /** Collects the latest values from a panel's declared inputs. */
-function getInputValues(config: ReactivePanelConfig): Record<string, unknown> {
+function getInputValues(config: PanelConfig): Record<string, unknown> {
   const inputs: Record<string, unknown> = {};
   if (config.inputs) {
     for (const [name, panelId] of Object.entries(config.inputs)) {
@@ -143,7 +143,7 @@ function tickPanel(panelId: string): void {
  * so that initial input values are available on the first tick.
  */
 export function startReactivePanel(
-  config: ReactivePanelConfig,
+  config: PanelConfig,
   contentEl: HTMLElement,
 ): void {
   // Compile expression (receives `inputs` object) and render function once
@@ -165,14 +165,14 @@ export function startReactivePanel(
     }
   }
 
-  // Schedule based on the configured strategy
+  // Schedule based on the configured strategy (omitted schedule = one-shot)
   const { schedule } = config;
 
-  if (schedule.type === 'interval') {
+  if (schedule?.type === 'interval') {
     tickPanel(config.id);
     state.timerId = setInterval(() => tickPanel(config.id), schedule.intervalMs);
   } else {
-    // inputChange — run an initial tick so the panel isn't blank
+    // inputChange or no schedule — run an initial tick
     tickPanel(config.id);
   }
 }

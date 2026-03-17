@@ -1,9 +1,9 @@
 [
   {
     "id": "vti-snapshot",
-    "type": "webview",
     "title": "VTI Snapshot",
-    "url": "https://www.google.com/finance/quote/VTI:NYSEARCA",
+    "expression": "'https://www.google.com/finance/quote/VTI:NYSEARCA'",
+    "render": "(value) => ({ webviewUrl: value })",
     "rect": {
       "position": {
         "x": 0,
@@ -17,7 +17,6 @@
   },
   {
     "id": "clock",
-    "type": "reactive",
     "title": "Clock",
     "expression": "new Date()",
     "schedule": { "type": "interval", "intervalMs": 1000 },
@@ -35,7 +34,6 @@
   },
   {
     "id": "clock-plus-1hr",
-    "type": "reactive",
     "title": "Clock +1 Hr",
     "expression": "new Date(inputs.clock.getTime() + 60 * 60 * 1000)",
     "schedule": { "type": "inputChange" },
@@ -54,7 +52,6 @@
   },
   {
     "id": "google-time",
-    "type": "reactive",
     "title": "Google Time",
     "expression": "new Date(Math.floor(inputs.clock.getTime() / 10000) * 10000)",
     "schedule": { "type": "inputChange" },
