@@ -1,12 +1,16 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { paths } from './environment';
 import { initialWindowSize, quitOnWindowClose } from './config';
+import { loadPanelsConfig, watchPanelsConfig } from './config-loader';
 
 // #region Helpers
 
+let mainWindow: BrowserWindow | null = null;
+let stopWatchingPanels: (() => void) | null = null;
+
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: initialWindowSize.width,
     height: initialWindowSize.height,
     webPreferences: {
@@ -16,6 +20,13 @@ function createWindow(): void {
   });
 
   mainWindow.loadFile(path.join(paths.rendererDir, 'index.html'));
+
+  // Start watching panels config and reload when it changes
+  stopWatchingPanels = watchPanelsConfig((panels) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('panels-config-changed', panels);
+    }
+  });
 }
 
 function ensureWindowExists(): void {
@@ -26,6 +37,14 @@ function ensureWindowExists(): void {
 }
 
 // #endregion Helpers
+
+// #region IPC Handlers
+
+ipcMain.handle('get-panels-config', () => {
+  return loadPanelsConfig();
+});
+
+// #endregion IPC Handlers
 
 // #region App Lifecycle
 
@@ -39,6 +58,9 @@ app.whenReady().then(() => {
 // Quit the app when all windows are closed, except on macOS where it's common for applications
 // to stay open until the user explicitly quits with Cmd + Q.
 app.on('window-all-closed', () => {
+  if (stopWatchingPanels) {
+    stopWatchingPanels();
+  }
   if (quitOnWindowClose) {
     app.quit();
   }

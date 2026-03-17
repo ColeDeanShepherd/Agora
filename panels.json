@@ -1,0 +1,17 @@
+[
+  {
+    "id": "vti-snapshot",
+    "title": "VTI Snapshot",
+    "url": "https://www.google.com/finance/quote/VTI:NYSEARCA",
+    "rect": {
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    }
+  }
+]

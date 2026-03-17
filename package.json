@@ -4,7 +4,7 @@
   "description": "A bare-bones Hello World Electron app",
   "main": "dist/main.js",
   "scripts": {
-    "build": "rm -rf dist && tsc && mkdir -p dist/renderer && cp -r src/renderer/. dist/renderer",
+    "build": "rm -rf dist && tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && mkdir -p dist/renderer && cp -r src/renderer/. dist/renderer",
     "start": "npm run build && electron ."
   },
   "devDependencies": {

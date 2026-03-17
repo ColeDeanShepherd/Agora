@@ -31,27 +31,34 @@ body {
 body {
   font-family: system-ui, sans-serif;
   font-size: clamp(1rem, 2.5vw, 1.1rem);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  min-height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--fg);
 }
 
+/* Viewport clips the canvas and fills the window */
+#canvas-viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Canvas receives pan/zoom transforms; panels sit inside */
+#canvas {
+  transform-origin: 0 0;
+  will-change: transform;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 main {
-  width: min(92%, 56rem);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
+  position: relative;
 }
 
 .panel {
-  margin-inline: auto;
-  width: 640px;
-  height: 480px;
+  position: absolute;
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -67,7 +74,7 @@ main {
   font-weight: 600;
 }
 
-.market-view {
+.webview-panel {
   /* Ensure the webview fills its container */
   display: block;
   width: 100%;

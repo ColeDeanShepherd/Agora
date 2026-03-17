@@ -1,5 +1,5 @@
 import { isRunningOnMac } from './environment';
-import type { RectSize } from './rect-size';
+import type { RectSize } from './shared/rect-size';
 
 export const quitOnWindowClose = !isRunningOnMac;
 

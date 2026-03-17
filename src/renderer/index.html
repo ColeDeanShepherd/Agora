@@ -6,19 +6,13 @@
     <meta name="color-scheme" content="light dark" />
     <title>Agora</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="renderer.js" defer></script>
   </head>
   <body>
-    <main>
-      <section class="panel" aria-label="Market snapshot">
-        <h1>VTI Snapshot</h1>
-        <webview
-          class="market-view"
-          src="https://www.google.com/finance/quote/VTI:NYSEARCA"
-          partition="persist:market"
-          allowpopups
-        ></webview>
-      </section>
-    </main>
+    <div id="canvas-viewport">
+      <div id="canvas">
+        <main id="panels-container"></main>
+      </div>
+    </div>
+    <script type="module" src="frontend.js"></script>
   </body>
 </html>
