@@ -11,6 +11,7 @@ function createWindow(): void {
     height: initialWindowSize.height,
     webPreferences: {
       preload: path.join(paths.distDir, 'preload.js'),
+      webviewTag: true,
     },
   });
 

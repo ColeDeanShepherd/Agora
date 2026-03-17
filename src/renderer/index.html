@@ -4,16 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'"
-    />
     <title>Agora</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="renderer.js" defer></script>
   </head>
   <body>
     <main>
-      <h1>Hello, world!</h1>
+      <section class="panel" aria-label="Market snapshot">
+        <h1>VTI Snapshot</h1>
+        <webview
+          class="market-view"
+          src="https://www.google.com/finance/quote/VTI:NYSEARCA"
+          partition="persist:market"
+          allowpopups
+        ></webview>
+      </section>
     </main>
   </body>
 </html>
