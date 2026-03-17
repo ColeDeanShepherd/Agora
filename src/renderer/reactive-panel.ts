@@ -1,46 +1,112 @@
 import type { ReactivePanelConfig } from '../shared/panel-config';
 
-/** Tracks a running reactive panel so it can be torn down on re-render. */
-interface ReactiveHandle {
-  timerId: ReturnType<typeof setInterval>;
+// ── Per-panel runtime state ──────────────────────────────────────────
+
+interface ReactiveState {
+  config: ReactivePanelConfig;
+  contentEl: HTMLElement;
+  evaluate: (inputs: Record<string, unknown>) => unknown;
+  render: (value: unknown) => string;
+  timerId?: ReturnType<typeof setInterval>;
+  currentValue?: unknown;
 }
 
-/** Active handles keyed by panel ID; cleared when panels are re-rendered. */
-const activeHandles = new Map<string, ReactiveHandle>();
+/** Active states keyed by panel ID; cleared when panels are re-rendered. */
+const activeStates = new Map<string, ReactiveState>();
+
+/** Forward dependency map: source panel ID → set of dependent panel IDs. */
+const dependents = new Map<string, Set<string>>();
+
+// ── Lifecycle ────────────────────────────────────────────────────────
 
 /** Stops all running reactive panels (called before a full re-render). */
 export function clearReactivePanels(): void {
-  for (const handle of activeHandles.values()) {
-    clearInterval(handle.timerId);
+  for (const state of activeStates.values()) {
+    if (state.timerId !== undefined) clearInterval(state.timerId);
   }
-  activeHandles.clear();
+  activeStates.clear();
+  dependents.clear();
 }
 
+// ── Evaluation helpers ───────────────────────────────────────────────
+
+/** Collects the latest values from a panel's declared inputs. */
+function getInputValues(config: ReactivePanelConfig): Record<string, unknown> {
+  const inputs: Record<string, unknown> = {};
+  if (config.inputs) {
+    for (const [name, panelId] of Object.entries(config.inputs)) {
+      inputs[name] = activeStates.get(panelId)?.currentValue;
+    }
+  }
+  return inputs;
+}
+
+/** Evaluates a panel, updates the DOM, then cascades to dependents. */
+function tickPanel(panelId: string): void {
+  const state = activeStates.get(panelId);
+  if (!state) return;
+
+  try {
+    const inputs = getInputValues(state.config);
+    const value = state.evaluate(inputs);
+    state.currentValue = value;
+    state.contentEl.innerHTML = state.render(value);
+  } catch (err) {
+    state.contentEl.textContent = `Error: ${(err as Error).message}`;
+  }
+
+  // Propagate to any panels that depend on this one
+  const deps = dependents.get(panelId);
+  if (deps) {
+    for (const depId of deps) {
+      tickPanel(depId);
+    }
+  }
+}
+
+// ── Public API ───────────────────────────────────────────────────────
+
 /**
- * Builds the evaluate → render pipeline for a single reactive panel.
- * The expression is evaluated and the render function is called once
- * immediately, then repeated on the configured interval.
+ * Registers and starts a single reactive panel.
+ *
+ * • **interval** schedule  → `setInterval` drives re-evaluation.
+ * • **inputChange** schedule → the panel is re-evaluated automatically
+ *   whenever any of its source panels produce a new value.
+ *
+ * Panels must be started in dependency order (sources before consumers)
+ * so that initial input values are available on the first tick.
  */
 export function startReactivePanel(
   config: ReactivePanelConfig,
   contentEl: HTMLElement,
 ): void {
-  // Compile expression and render function once
-  const evaluate = new Function(`return (${config.expression})`) as () => unknown;
-  const render = new Function('value', `return (${config.render})(value)`) as (v: unknown) => string;
+  // Compile expression (receives `inputs` object) and render function once
+  const evaluate = new Function('inputs', `return (${config.expression})`) as
+    (inputs: Record<string, unknown>) => unknown;
+  const render = new Function('value', `return (${config.render})(value)`) as
+    (v: unknown) => string;
 
-  const tick = (): void => {
-    try {
-      const value = evaluate();
-      contentEl.innerHTML = render(value);
-    } catch (err) {
-      contentEl.textContent = `Error: ${(err as Error).message}`;
+  const state: ReactiveState = { config, contentEl, evaluate, render };
+  activeStates.set(config.id, state);
+
+  // Register forward dependencies so source panels can notify us
+  if (config.inputs) {
+    for (const panelId of Object.values(config.inputs)) {
+      if (!dependents.has(panelId)) {
+        dependents.set(panelId, new Set());
+      }
+      dependents.get(panelId)!.add(config.id);
     }
-  };
+  }
 
-  // Run immediately, then schedule
-  tick();
-  const timerId = setInterval(tick, config.intervalMs);
+  // Schedule based on the configured strategy
+  const { schedule } = config;
 
-  activeHandles.set(config.id, { timerId });
+  if (schedule.type === 'interval') {
+    tickPanel(config.id);
+    state.timerId = setInterval(() => tickPanel(config.id), schedule.intervalMs);
+  } else {
+    // inputChange — run an initial tick so the panel isn't blank
+    tickPanel(config.id);
+  }
 }
