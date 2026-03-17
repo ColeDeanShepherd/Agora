@@ -1,0 +1,43 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e2e;
+    --fg: #cdd6f4;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+main {
+  width: min(90%, 60rem);
+  padding: 1.5rem;
+  text-align: center;
+}
