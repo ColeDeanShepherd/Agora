@@ -1,5 +1,5 @@
 import type { PanelConfig } from '../shared/panel-config';
-import { clearReactivePanels, startReactivePanel } from './reactive-panel.js';
+import { clearReactivePanels, startReactivePanel, initFileWatching } from './reactive-panel.js';
 
 /** Creates the outer section wrapper for a panel. */
 function createPanelShell(config: PanelConfig): HTMLElement {
@@ -58,6 +58,9 @@ export async function initializePanels(): Promise<void> {
     console.error('electronAPI not found on window');
     return;
   }
+
+  // Start listening for local file changes (idempotent)
+  initFileWatching();
   
   try {
     const panels = await electronAPI.getPanelsConfig();

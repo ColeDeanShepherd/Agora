@@ -101,5 +101,39 @@
         "height": 120
       }
     }
+  },
+  {
+    "id": "dl-front",
+    "title": "DL Front",
+    "expression": "api.readImage('/home/cole/Downloads/dl_front.jpg')",
+    "render": "(value) => `<img class=\"panel-image\" src=\"${value.dataUrl}\" />`",
+    "rect": {
+      "position": {
+        "x": 0,
+        "y": 1000
+      },
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    }
+  },
+  {
+    "id": "dl-front-blur",
+    "title": "DL Front (Blurred)",
+    "expression": "inputs.image",
+    "schedule": { "type": "inputChange" },
+    "inputs": { "image": "dl-front" },
+    "render": "(value) => `<img class=\"panel-image blurred\" src=\"${value.dataUrl}\" />`",
+    "rect": {
+      "position": {
+        "x": 660,
+        "y": 1000
+      },
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    }
   }
 ]

@@ -38,6 +38,50 @@ const activeStates = new Map<string, ReactiveState>();
 /** Forward dependency map: source panel ID → set of dependent panel IDs. */
 const dependents = new Map<string, Set<string>>();
 
+// ── File watching ────────────────────────────────────────────────────
+
+/** Panel currently being evaluated; used to track file dependencies. */
+let currentEvaluatingPanelId: string | null = null;
+
+/** Map of watched file paths → set of panel IDs that depend on them. */
+const fileDependencies = new Map<string, Set<string>>();
+
+/** Whether the file-changed listener has been initialised. */
+let fileWatchingInitialized = false;
+
+/** Registers a file dependency for the currently evaluating panel. */
+function trackFileDependency(filePath: string): void {
+  if (!currentEvaluatingPanelId) return;
+
+  if (!fileDependencies.has(filePath)) {
+    fileDependencies.set(filePath, new Set());
+    // Ask the main process to start watching this file
+    window.electronAPI?.watchFile(filePath);
+  }
+  fileDependencies.get(filePath)!.add(currentEvaluatingPanelId);
+}
+
+/** Initialises the file-changed event listener (idempotent). */
+export function initFileWatching(): void {
+  if (fileWatchingInitialized) return;
+  fileWatchingInitialized = true;
+
+  window.electronAPI?.onFileChanged((filePath: string) => {
+    const panelIds = fileDependencies.get(filePath);
+    if (panelIds) {
+      for (const panelId of panelIds) {
+        tickPanel(panelId);
+      }
+    }
+  });
+}
+
+/** Tears down all file watches (called before a full re-render). */
+function clearFileWatches(): void {
+  window.electronAPI?.unwatchAllFiles();
+  fileDependencies.clear();
+}
+
 // ── Lifecycle ────────────────────────────────────────────────────────
 
 /** Stops all running reactive panels (called before a full re-render). */
@@ -47,6 +91,7 @@ export function clearReactivePanels(): void {
   }
   activeStates.clear();
   dependents.clear();
+  clearFileWatches();
 }
 
 // ── Webview helpers ──────────────────────────────────────────────────
@@ -102,7 +147,14 @@ function getInputValues(config: PanelConfig): Record<string, unknown> {
 
 /** The api object passed to every expression as the second argument. */
 const expressionApi: Record<string, unknown> = {
-  readPdf: (filePath: string) => window.electronAPI?.readPdf(filePath),
+  readPdf: (filePath: string) => {
+    trackFileDependency(filePath);
+    return window.electronAPI?.readPdf(filePath);
+  },
+  readImage: (filePath: string) => {
+    trackFileDependency(filePath);
+    return window.electronAPI?.readImage(filePath);
+  },
 };
 
 /** Evaluates a panel, updates the DOM, then cascades to dependents. */
@@ -111,10 +163,12 @@ async function tickPanel(panelId: string): Promise<void> {
   if (!state) return;
 
   try {
+    currentEvaluatingPanelId = panelId;
     const inputs = getInputValues(state.config);
     // Expressions may return a Promise (e.g. api.readPdf); await it.
     const raw = state.evaluate(inputs, expressionApi);
     const value = raw instanceof Promise ? await raw : raw;
+    currentEvaluatingPanelId = null;
     state.currentValue = value;
 
     const rendered = state.render(value);

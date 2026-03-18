@@ -4,6 +4,8 @@ import { paths } from './environment';
 import { initialWindowSize, quitOnWindowClose } from './config';
 import { loadPanelsConfig, watchPanelsConfig } from './config-loader';
 import { readPdf } from './pdf-reader';
+import { readImage } from './image-reader';
+import { watchFile, unwatchAll, setFileChangeCallback } from './file-watcher';
 
 // #region Helpers
 
@@ -21,6 +23,13 @@ function createWindow(): void {
   });
 
   mainWindow.loadFile(path.join(paths.rendererDir, 'index.html'));
+
+  // Forward local file-change events to the renderer
+  setFileChangeCallback((filePath) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('file-changed', filePath);
+    }
+  });
 
   // Start watching panels config and reload when it changes
   stopWatchingPanels = watchPanelsConfig((panels) => {
@@ -49,6 +58,18 @@ ipcMain.handle('read-pdf', (_event, filePath: string) => {
   return readPdf(filePath);
 });
 
+ipcMain.handle('read-image', (_event, filePath: string) => {
+  return readImage(filePath);
+});
+
+ipcMain.handle('watch-file', (_event, filePath: string) => {
+  watchFile(filePath);
+});
+
+ipcMain.handle('unwatch-all-files', () => {
+  unwatchAll();
+});
+
 // #endregion IPC Handlers
 
 // #region App Lifecycle
@@ -66,6 +87,7 @@ app.on('window-all-closed', () => {
   if (stopWatchingPanels) {
     stopWatchingPanels();
   }
+  unwatchAll();
   if (quitOnWindowClose) {
     app.quit();
   }
