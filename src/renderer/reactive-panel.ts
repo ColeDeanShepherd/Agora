@@ -22,7 +22,7 @@ function isWebviewSignal(value: unknown): value is WebviewRenderSignal {
 interface ReactiveState {
   config: PanelConfig;
   contentEl: HTMLElement;
-  evaluate: (inputs: Record<string, unknown>) => unknown;
+  evaluate: (inputs: Record<string, unknown>, api: Record<string, unknown>) => unknown;
   render: (value: unknown) => unknown;
   timerId?: ReturnType<typeof setInterval>;
   currentValue?: unknown;
@@ -100,14 +100,21 @@ function getInputValues(config: PanelConfig): Record<string, unknown> {
   return inputs;
 }
 
+/** The api object passed to every expression as the second argument. */
+const expressionApi: Record<string, unknown> = {
+  readPdf: (filePath: string) => window.electronAPI?.readPdf(filePath),
+};
+
 /** Evaluates a panel, updates the DOM, then cascades to dependents. */
-function tickPanel(panelId: string): void {
+async function tickPanel(panelId: string): Promise<void> {
   const state = activeStates.get(panelId);
   if (!state) return;
 
   try {
     const inputs = getInputValues(state.config);
-    const value = state.evaluate(inputs);
+    // Expressions may return a Promise (e.g. api.readPdf); await it.
+    const raw = state.evaluate(inputs, expressionApi);
+    const value = raw instanceof Promise ? await raw : raw;
     state.currentValue = value;
 
     const rendered = state.render(value);
@@ -125,7 +132,7 @@ function tickPanel(panelId: string): void {
   const deps = dependents.get(panelId);
   if (deps) {
     for (const depId of deps) {
-      tickPanel(depId);
+      await tickPanel(depId);
     }
   }
 }
@@ -146,9 +153,9 @@ export function startReactivePanel(
   config: PanelConfig,
   contentEl: HTMLElement,
 ): void {
-  // Compile expression (receives `inputs` object) and render function once
-  const evaluate = new Function('inputs', `return (${config.expression})`) as
-    (inputs: Record<string, unknown>) => unknown;
+  // Compile expression (receives `inputs` and `api` objects) and render function once
+  const evaluate = new Function('inputs', 'api', `return (${config.expression})`) as
+    (inputs: Record<string, unknown>, api: Record<string, unknown>) => unknown;
   const render = new Function('value', `return (${config.render})(value)`) as
     (v: unknown) => string;
 

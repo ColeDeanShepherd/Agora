@@ -53,7 +53,7 @@
   {
     "id": "google-time",
     "title": "Google Time",
-    "expression": "new Date(Math.floor(inputs.clock.getTime() / 10000) * 10000)",
+    "expression": "new Date(Math.floor(inputs.clock.getTime() / 30000) * 30000)",
     "schedule": { "type": "inputChange" },
     "inputs": { "clock": "clock" },
     "render": "(value) => ({ webviewUrl: `https://www.google.com/search?igu=1&q=${encodeURIComponent(value.toLocaleTimeString())}` })",
@@ -65,6 +65,40 @@
       "size": {
         "width": 640,
         "height": 480
+      }
+    }
+  },
+  {
+    "id": "resume",
+    "title": "Resume PDF",
+    "expression": "api.readPdf('/home/cole/Downloads/resume.pdf')",
+    "render": "(value) => ({ webviewUrl: `file://${value.path}` })",
+    "rect": {
+      "position": {
+        "x": 0,
+        "y": 500
+      },
+      "size": {
+        "width": 640,
+        "height": 480
+      }
+    }
+  },
+  {
+    "id": "resume-seattle-count",
+    "title": "Seattle Count",
+    "expression": "(inputs.resume.text.match(/Seattle/gi) || []).length",
+    "schedule": { "type": "inputChange" },
+    "inputs": { "resume": "resume" },
+    "render": "(value) => `<span class=\"clock-display\">\"Seattle\" found ${value} time(s)</span>`",
+    "rect": {
+      "position": {
+        "x": 660,
+        "y": 640
+      },
+      "size": {
+        "width": 280,
+        "height": 120
       }
     }
   }

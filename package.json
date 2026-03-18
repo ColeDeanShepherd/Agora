@@ -11,5 +11,8 @@
     "@types/node": "^20.0.0",
     "electron": "^33.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
   }
 }

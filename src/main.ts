@@ -3,6 +3,7 @@ import path from 'path';
 import { paths } from './environment';
 import { initialWindowSize, quitOnWindowClose } from './config';
 import { loadPanelsConfig, watchPanelsConfig } from './config-loader';
+import { readPdf } from './pdf-reader';
 
 // #region Helpers
 
@@ -42,6 +43,10 @@ function ensureWindowExists(): void {
 
 ipcMain.handle('get-panels-config', () => {
   return loadPanelsConfig();
+});
+
+ipcMain.handle('read-pdf', (_event, filePath: string) => {
+  return readPdf(filePath);
 });
 
 // #endregion IPC Handlers

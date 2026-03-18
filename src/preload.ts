@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
       callback(panels);
     });
   },
+  readPdf: (filePath: string) => ipcRenderer.invoke('read-pdf', filePath),
 });
